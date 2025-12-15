@@ -174,6 +174,39 @@ export const emailContractTemplate = (data: {
   </div>
 `;
 
+export const emailUpdateTemplate = (data: {
+  clientName: string;
+  projectName: string;
+  message: string;
+}) => `
+  <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+      <h1>📢 Atualização do Projeto</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 20px; border: 1px solid #eee; border-radius: 0 0 8px 8px;">
+      <p>Olá <strong>${data.clientName}</strong>,</p>
+      
+      <p>Temos uma atualização importante sobre seu projeto <strong>${data.projectName}</strong>:</p>
+      
+      <div style="background: white; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0;">
+        ${data.message}
+      </div>
+      
+      <p>Acesse seu portal para ver todos os detalhes e acompanhar o progresso em tempo real.</p>
+      
+      <div style="margin-top: 30px; padding: 15px; background: #e8f4f8; border-radius: 8px; border-left: 4px solid #17a2b8;">
+        <p style="margin: 0; color: #0c5460;"><strong>💡 Dica:</strong> Visite seu portal de cliente para ver arquivos e documentos atualizados.</p>
+      </div>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <p style="color: #28a745; font-weight: bold; margin: 0;">Atenciosamente,</p>
+        <p style="margin: 5px 0;">Philippe Boechat</p>
+      </div>
+    </div>
+  </div>
+`;
+
 // ============================================
 // FUNÇÃO PARA ENVIAR EMAIL
 // ============================================

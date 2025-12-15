@@ -8,6 +8,7 @@ import { EditProjectModal } from '../admin/modals/EditProjectModal';
 import { EmailGeneratorModal } from '../EmailGeneratorModal';
 import { ContractGeneratorModal } from '../ContractGeneratorModal';
 import { api } from '../../lib/api';
+import { sendUpdateEmail } from '../../lib/api-email';
 import { ClientProject } from '../../types';
 
 export const CRM: React.FC = () => {
@@ -37,8 +38,18 @@ export const CRM: React.FC = () => {
   const handleEditSave = async (id: string, data: Partial<ClientProject>, notify: boolean, emailMsg?: string) => {
       updateProject(id, data);
       if (notify && emailMsg && editingProject) {
-          // Aqui chamaria a API de e-mail se necessário
-          alert("Projeto atualizado e notificação enviada!");
+          try {
+              await sendUpdateEmail({
+                  clientEmail: editingProject.email,
+                  clientName: editingProject.clientName,
+                  projectName: editingProject.projectName,
+                  message: emailMsg,
+              });
+              alert("Projeto atualizado e notificação enviada!");
+          } catch (error) {
+              console.error('Erro ao enviar email:', error);
+              alert("Projeto atualizado, mas houve erro ao enviar email");
+          }
       }
   };
 

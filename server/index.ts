@@ -7,6 +7,8 @@ import {
   sendEmail,
   emailContactTemplate,
   emailConfirmationTemplate,
+  emailContractTemplate,
+  emailUpdateTemplate,
 } from './email.js';
 
 dotenv.config();
@@ -70,6 +72,96 @@ app.post('/api/send-contact-email', async (req, res) => {
     res.json({
       success: true,
       message: 'Email enviado com sucesso!',
+    });
+  } catch (error) {
+    console.error('Erro:', error);
+    res.status(500).json({
+      error: 'Erro ao enviar email',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Enviar email de contrato
+app.post('/api/send-contract-email', async (req, res) => {
+  try {
+    const { clientName, clientEmail, projectName, value, timeline, contractLink } = req.body;
+
+    if (!clientName || !clientEmail || !projectName || !value || !timeline) {
+      return res.status(400).json({ error: 'Dados obrigatórios faltando' });
+    }
+
+    await sendEmail(
+      clientEmail,
+      `📋 Proposta de Projeto - ${projectName}`,
+      emailContractTemplate({
+        clientName,
+        projectName,
+        value,
+        timeline,
+        contractLink,
+      })
+    );
+
+    res.json({
+      success: true,
+      message: 'Email de contrato enviado!',
+    });
+  } catch (error) {
+    console.error('Erro:', error);
+    res.status(500).json({
+      error: 'Erro ao enviar email',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Enviar email de atualização de projeto
+app.post('/api/send-update-email', async (req, res) => {
+  try {
+    const { clientEmail, clientName, projectName, message } = req.body;
+
+    if (!clientEmail || !clientName || !projectName || !message) {
+      return res.status(400).json({ error: 'Dados obrigatórios faltando' });
+    }
+
+    await sendEmail(
+      clientEmail,
+      `📢 Atualização: ${projectName}`,
+      emailUpdateTemplate({
+        clientName,
+        projectName,
+        message,
+      })
+    );
+
+    res.json({
+      success: true,
+      message: 'Email de atualização enviado!',
+    });
+  } catch (error) {
+    console.error('Erro:', error);
+    res.status(500).json({
+      error: 'Erro ao enviar email',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Enviar email genérico
+app.post('/api/send-email', async (req, res) => {
+  try {
+    const { to, subject, html } = req.body;
+
+    if (!to || !subject || !html) {
+      return res.status(400).json({ error: 'Campos obrigatórios: to, subject, html' });
+    }
+
+    await sendEmail(to, subject, html);
+
+    res.json({
+      success: true,
+      message: 'Email enviado!',
     });
   } catch (error) {
     console.error('Erro:', error);
