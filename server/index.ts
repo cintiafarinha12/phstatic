@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import {
   sendEmail,
   emailContactTemplate,
@@ -8,6 +10,9 @@ import {
 } from './email.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,6 +23,9 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Servir arquivos estáticos do Vite
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // ============================================
 // ROTAS
@@ -70,6 +78,11 @@ app.post('/api/send-contact-email', async (req, res) => {
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+});
+
+// Fallback para SPA - servir index.html para rotas desconhecidas
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 // ============================================
