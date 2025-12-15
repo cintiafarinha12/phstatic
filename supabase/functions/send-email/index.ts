@@ -1,70 +1,119 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createTransport } from "npm:nodemailer@6.9.13"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
-// Declare Deno to avoid TS errors
-declare const Deno: any;
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+interface EmailRequest {
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
 }
 
-serve(async (req: any) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+serve(async (req) => {
+  // Handle CORS
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { to, subject, html, text } = await req.json()
+    // Parse request body
+    const body = await req.json() as EmailRequest;
 
-    // Validação básica
-    if (!to || !subject || !html) {
-      throw new Error('Missing required fields: to, subject, html')
+    // Validate required fields
+    if (!body.to || !body.subject || !body.html) {
+      return new Response(
+        JSON.stringify({
+          error: "Missing required fields: to, subject, html",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Configuração do Transporter (Google SMTP)
-    // IMPORTANTE: Você deve configurar essas variáveis no painel do Supabase ou via CLI
-    // supabase secrets set SMTP_USER="seu-email@gmail.com"
-    // supabase secrets set SMTP_PASS="sua-senha-de-app-gerada-no-google"
-    const transporter = createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true, // true for 465, false for other ports
-      auth: {
-        user: Deno.env.get("SMTP_USER"),
-        pass: Deno.env.get("SMTP_PASS"),
+    // Get environment variables
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPassword = Deno.env.get("SMTP_PASSWORD");
+    const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
+    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
+    const fromName = Deno.env.get("SMTP_FROM_NAME") || "Philippe Boechat - Portfólio";
+
+    // Validate SMTP configuration
+    if (!smtpUser || !smtpPassword) {
+      console.error("❌ SMTP credentials não configurados");
+      return new Response(
+        JSON.stringify({
+          error: "Email service não configurado corretamente",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Create SMTP client
+    const client = new SmtpClient({
+      connection: {
+        hostname: smtpHost,
+        port: smtpPort,
+        tls: true,
+        auth: {
+          username: smtpUser,
+          password: smtpPassword,
+        },
       },
     });
 
-    // Envio do E-mail
-    const info = await transporter.sendMail({
-      from: `"PH Development" <${Deno.env.get("SMTP_USER")}>`,
-      to: to,
-      subject: subject,
-      text: text || "Visualize este e-mail em um cliente compatível com HTML.",
-      html: html,
+    // Connect and send email
+    await client.connect();
+
+    const messageId = await client.send({
+      from: `${fromName} <${smtpUser}>`,
+      to: body.to,
+      subject: body.subject,
+      html: body.html,
+      replyTo: body.replyTo || smtpUser,
+      headers: new Map([
+        ["X-Mailer", "Supabase Edge Function"],
+      ]),
     });
 
-    console.log("Message sent: %s", info.messageId);
+    await client.close();
+
+    console.log(`✅ Email enviado com sucesso! ID: ${messageId}`);
 
     return new Response(
-      JSON.stringify({ success: true, messageId: info.messageId }),
+      JSON.stringify({
+        success: true,
+        messageId: messageId,
+        to: body.to,
+        subject: body.subject,
+      }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    )
+    );
+  } catch (error) {
+    console.error("❌ Erro ao enviar email:", error);
 
-  } catch (error: any) {
-    console.error("Error sending email:", error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Erro ao enviar email",
+        details: error instanceof Error ? error.stack : undefined,
+      }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400, // ou 500 dependendo do erro
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    )
+    );
   }
-})
+});
