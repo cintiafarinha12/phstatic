@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { useContent } from '../contexts/ContentContext';
 import { ContactFormData } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sendEmail, emailContactTemplate, emailConfirmationTemplate } from '../lib/email';
 
 export const Contact: React.FC = () => {
   const { content } = useContent();
@@ -46,63 +47,52 @@ export const Contact: React.FC = () => {
       }
       return;
     }
-    
-    if (!CONTACT_CONFIG.FORMSPREE_ID || CONTACT_CONFIG.FORMSPREE_ID === 'SEU_ID_AQUI') {
-        if (isMounted.current) {
-            setErrorMsg('Erro de configuração: ID do Formspree ausente.');
-            setIsSubmitting(false);
-        }
-        return;
-    }
 
-    const payload = {
-        "Nome do Cliente": formData.name,
-        "E-mail de Contato": formData.email,
-        "Tipo de Projeto": formData.projectType,
-        "Orçamento Estimado": formData.budget,
-        "Detalhes da Mensagem": formData.message,
-        "_subject": `🚀 Novo Lead: ${formData.projectType} - ${formData.name}`,
-        "_replyto": formData.email,
-        "_template": "table"
-    };
-    
     try {
-        const response = await fetch(`https://formspree.io/f/${CONTACT_CONFIG.FORMSPREE_ID}`, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
+      // 1. Enviar email para o admin (Philippe)
+      const adminEmailHtml = emailContactTemplate({
+        name: formData.name,
+        email: formData.email,
+        projectType: formData.projectType,
+        budget: formData.budget,
+        message: formData.message
+      });
+
+      await sendEmail({
+        to: import.meta.env.VITE_SMTP_TO_EMAIL || 'philippeboechat1@gmail.com',
+        subject: `🚀 Novo Lead: ${formData.projectType} - ${formData.name}`,
+        html: adminEmailHtml,
+        replyTo: formData.email
+      });
+
+      // 2. Enviar email de confirmação para o cliente
+      const confirmationHtml = emailConfirmationTemplate(formData.name);
+      await sendEmail({
+        to: formData.email,
+        subject: 'Recebemos seu formulário! ✅',
+        html: confirmationHtml
+      });
+
+      if (isMounted.current) {
+        setIsSuccess(true);
+        setFormData({ 
+          name: '', 
+          email: '', 
+          projectType: SERVICE_PACKAGES[0]?.title || 'Site Profissional', 
+          budget: 'Não tenho certeza', 
+          message: '' 
         });
-
-        if (!isMounted.current) return;
-
-        if (response.ok) {
-            setIsSuccess(true);
-            setFormData({ 
-                name: '', 
-                email: '', 
-                projectType: SERVICE_PACKAGES[0]?.title || 'Site Profissional', 
-                budget: 'Não tenho certeza', 
-                message: '' 
-            });
-        } else {
-            const data = await response.json();
-            if (Object.prototype.hasOwnProperty.call(data, 'errors')) {
-                 setErrorMsg(data.errors.map((error: any) => error.message).join(", "));
-            } else {
-                 setErrorMsg("Ocorreu um erro ao enviar o formulário. Tente novamente.");
-            }
-        }
+      }
     } catch (error) {
-        if (isMounted.current) {
-            setErrorMsg("Erro de conexão. Verifique sua internet.");
-        }
+      if (isMounted.current) {
+        const errorMsg = error instanceof Error ? error.message : 'Erro ao enviar formulário';
+        setErrorMsg(errorMsg);
+        console.error('Erro no formulário:', error);
+      }
     } finally {
-        if (isMounted.current) {
-            setIsSubmitting(false);
-        }
+      if (isMounted.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
