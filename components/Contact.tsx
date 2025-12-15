@@ -5,7 +5,6 @@ import { Button } from './Button';
 import { useContent } from '../contexts/ContentContext';
 import { ContactFormData } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { sendEmail, emailContactTemplate, emailConfirmationTemplate } from '../lib/email';
 
 export const Contact: React.FC = () => {
   const { content } = useContent();
@@ -49,29 +48,25 @@ export const Contact: React.FC = () => {
     }
 
     try {
-      // 1. Enviar email para o admin (Philippe)
-      const adminEmailHtml = emailContactTemplate({
-        name: formData.name,
-        email: formData.email,
-        projectType: formData.projectType,
-        budget: formData.budget,
-        message: formData.message
+      // Chamar o servidor backend
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      
+      const response = await fetch(`${apiUrl}/api/send-contact-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: `Tipo de Projeto: ${formData.projectType}\nOrçamento: ${formData.budget}\n\n${formData.message}`,
+        }),
       });
 
-      await sendEmail({
-        to: import.meta.env.VITE_SMTP_TO_EMAIL || 'philippeboechat1@gmail.com',
-        subject: `🚀 Novo Lead: ${formData.projectType} - ${formData.name}`,
-        html: adminEmailHtml,
-        replyTo: formData.email
-      });
-
-      // 2. Enviar email de confirmação para o cliente
-      const confirmationHtml = emailConfirmationTemplate(formData.name);
-      await sendEmail({
-        to: formData.email,
-        subject: 'Recebemos seu formulário! ✅',
-        html: confirmationHtml
-      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao enviar formulário');
+      }
 
       if (isMounted.current) {
         setIsSuccess(true);
