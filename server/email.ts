@@ -13,89 +13,166 @@ const transporter = nodemailer.createTransport({
 });
 
 // ============================================
-// TEMPLATES DE EMAIL
+// TEMPLATES DE EMAIL - Importados do projeto
 // ============================================
 
-export const emailContactTemplate = (name: string, email: string, message: string) => {
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #2563eb; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-          .content { background: #f5f5f5; padding: 20px; border-radius: 0 0 5px 5px; }
-          .field { margin: 15px 0; }
-          .label { font-weight: bold; color: #2563eb; }
-          .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>📨 Novo Contato do Formulário</h1>
-          </div>
-          <div class="content">
-            <div class="field">
-              <span class="label">Nome:</span><br>
-              ${name}
-            </div>
-            <div class="field">
-              <span class="label">Email:</span><br>
-              ${email}
-            </div>
-            <div class="field">
-              <span class="label">Mensagem:</span><br>
-              ${message.replace(/\n/g, '<br>')}
-            </div>
-            <div class="footer">
-              <p>Este email foi enviado automaticamente pelo formulário de contato do seu site.</p>
-            </div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-};
+export const emailContactTemplate = (data: {
+  name: string;
+  email: string;
+  projectType: string;
+  budget: string;
+  message: string;
+}) => `
+  <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+      <h1>📧 Novo Lead do Portfólio</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 20px; border: 1px solid #eee; border-radius: 0 0 8px 8px;">
+      <h2 style="color: #667eea;">Informações do Cliente</h2>
+      
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px; font-weight: bold; background: #f0f0f0; width: 30%;">Nome:</td>
+          <td style="padding: 10px;">${data.name}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; background: #f0f0f0;">Email:</td>
+          <td style="padding: 10px;">
+            <a href="mailto:${data.email}" style="color: #667eea; text-decoration: none;">${data.email}</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; background: #f0f0f0;">Tipo de Projeto:</td>
+          <td style="padding: 10px;">${data.projectType}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; background: #f0f0f0;">Orçamento:</td>
+          <td style="padding: 10px;">${data.budget}</td>
+        </tr>
+      </table>
 
-export const emailConfirmationTemplate = (name: string) => {
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #10b981; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-          .content { background: #f5f5f5; padding: 20px; border-radius: 0 0 5px 5px; }
-          .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>✅ Obrigado pelo seu contato!</h1>
-          </div>
-          <div class="content">
-            <p>Oi ${name},</p>
-            <p>Recebemos sua mensagem com sucesso! 🎉</p>
-            <p>Nosso time analisará sua solicitação e entraremos em contato em breve.</p>
-            <p>Enquanto isso, se tiver alguma dúvida urgente, pode nos chamar no WhatsApp.</p>
-            <div class="footer">
-              <p>
-                Obrigado por entrar em contato!<br>
-                <strong>Philippe Boechat</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-};
+      <div style="margin-top: 20px; padding: 15px; background: #fff; border-left: 4px solid #667eea;">
+        <h3 style="margin-top: 0; color: #333;">Mensagem:</h3>
+        <p style="white-space: pre-wrap; line-height: 1.6;">${data.message}</p>
+      </div>
+
+      <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; text-align: center;">
+        <a href="mailto:${data.email}?subject=Re: Seu projeto de ${data.projectType}" 
+           style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          Responder Agora
+        </a>
+      </div>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+      <p>Este email foi gerado automaticamente pelo formulário de contato</p>
+      <p style="margin: 5px 0;">📍 De: ${data.email}</p>
+    </div>
+  </div>
+`;
+
+export const emailConfirmationTemplate = (clientName: string) => `
+  <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+      <h1>✅ Obrigado pelo seu interesse!</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 20px; border: 1px solid #eee; border-radius: 0 0 8px 8px;">
+      <p>Olá <strong>${clientName}</strong>,</p>
+
+      <p>Recebemos seu formulário de contato com sucesso! 🎉</p>
+
+      <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+        <p>Entraremos em contato em breve para discutir seu projeto. Você pode esperar um retorno em até <strong>24 horas</strong>.</p>
+      </div>
+
+      <h3>Próximos Passos:</h3>
+      <ol style="line-height: 1.8;">
+        <li>📧 Aguarde nosso email de confirmação</li>
+        <li>💬 Agende uma chamada ou troque mensagens</li>
+        <li>📋 Receba uma proposta personalizada</li>
+        <li>🚀 Começamos o projeto!</li>
+      </ol>
+
+      <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+        <p style="margin: 0; color: #666;">Dúvidas? Pode responder este email ou entrar em contato via WhatsApp.</p>
+      </div>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <p style="color: #667eea; font-weight: bold; margin: 0;">Atenciosamente,</p>
+        <p style="margin: 5px 0;">Philippe Boechat</p>
+        <p style="margin: 5px 0; font-size: 12px; color: #999;">Especialista em Frontend & Performance Web</p>
+      </div>
+    </div>
+  </div>
+`;
+
+export const emailContractTemplate = (data: {
+  clientName: string;
+  projectName: string;
+  value: string;
+  timeline: string;
+  contractLink?: string;
+}) => `
+  <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+    <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+      <h1>📋 Proposta de Projeto</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 20px; border: 1px solid #eee; border-radius: 0 0 8px 8px;">
+      <p>Olá <strong>${data.clientName}</strong>,</p>
+
+      <p>Segue em anexo a proposta formal para seu projeto!</p>
+
+      <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+        <h3 style="margin-top: 0; color: #28a745;">Resumo da Proposta</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px; font-weight: bold; background: #f0f0f0;">Projeto:</td>
+            <td style="padding: 8px;">${data.projectName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; background: #f0f0f0;">Valor:</td>
+            <td style="padding: 8px;"><strong style="color: #28a745; font-size: 16px;">R$ ${data.value}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; background: #f0f0f0;">Timeline:</td>
+            <td style="padding: 8px;">${data.timeline}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin-top: 20px; text-align: center;">
+        ${data.contractLink ? `
+          <a href="${data.contractLink}" 
+             style="display: inline-block; background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            Ver Contrato Completo
+          </a>
+        ` : `
+          <p style="color: #999;">Contrato em anexo</p>
+        `}
+      </div>
+
+      <h3>Próximas Etapas:</h3>
+      <ol style="line-height: 1.8;">
+        <li>✅ Revise a proposta</li>
+        <li>📝 Assine o contrato</li>
+        <li>💳 Realize o depósito da primeira parcela</li>
+        <li>🚀 Iniciamos o desenvolvimento!</li>
+      </ol>
+
+      <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+        <p style="margin: 0; color: #856404;"><strong>⏰ Válido por 7 dias</strong> - Confirme sua aceitação em breve!</p>
+      </div>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <p style="color: #28a745; font-weight: bold; margin: 0;">Atenciosamente,</p>
+        <p style="margin: 5px 0;">Philippe Boechat</p>
+      </div>
+    </div>
+  </div>
+`;
 
 // ============================================
 // FUNÇÃO PARA ENVIAR EMAIL
@@ -117,33 +194,4 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     console.error('❌ Erro ao enviar email:', error);
     throw error;
   }
-};
-
-// ============================================
-// VALIDAÇÕES
-// ============================================
-
-export const validateEmail = (email: string): boolean => {
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return re.test(email);
-};
-
-export const validateContactForm = (data: {
-  name?: string;
-  email?: string;
-  message?: string;
-}): { valid: boolean; error?: string } => {
-  if (!data.name || data.name.trim().length === 0) {
-    return { valid: false, error: 'Nome é obrigatório' };
-  }
-
-  if (!data.email || !validateEmail(data.email)) {
-    return { valid: false, error: 'Email inválido' };
-  }
-
-  if (!data.message || data.message.trim().length === 0) {
-    return { valid: false, error: 'Mensagem é obrigatória' };
-  }
-
-  return { valid: true };
 };

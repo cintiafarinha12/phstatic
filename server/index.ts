@@ -5,7 +5,6 @@ import {
   sendEmail,
   emailContactTemplate,
   emailConfirmationTemplate,
-  validateContactForm,
 } from './email.js';
 
 dotenv.config();
@@ -32,26 +31,31 @@ app.get('/api/health', (req, res) => {
 // Enviar email de contato
 app.post('/api/send-contact-email', async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const { name, email, projectType, budget, message } = req.body;
 
     // Validar dados
-    const validation = validateContactForm({ name, email, message });
-    if (!validation.valid) {
-      return res.status(400).json({ error: validation.error });
+    if (!name || !email || !projectType || !budget || !message) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
     // Enviar email para admin
     const adminEmail = process.env.VITE_SMTP_USER || 'philippeboechat1@gmail.com';
     await sendEmail(
       adminEmail,
-      `Novo contato de ${name}`,
-      emailContactTemplate(name, email, message)
+      `🚀 Novo Lead: ${projectType} - ${name}`,
+      emailContactTemplate({
+        name,
+        email,
+        projectType,
+        budget,
+        message,
+      })
     );
 
     // Enviar confirmação para cliente
     await sendEmail(
       email,
-      'Confirmação de contato',
+      'Recebemos seu formulário! ✅',
       emailConfirmationTemplate(name)
     );
 
