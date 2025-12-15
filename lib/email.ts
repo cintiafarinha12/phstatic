@@ -23,7 +23,7 @@ export const sendEmail = async (options: EmailOptions) => {
       throw new Error('Supabase credentials não configurados');
     }
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email-gmail`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
