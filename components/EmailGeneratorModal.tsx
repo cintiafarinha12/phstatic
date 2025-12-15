@@ -7,6 +7,7 @@ import { Button } from './Button';
 import { useProject } from '../contexts/ProjectContext';
 import { SITE_CONFIG } from '../config';
 import { api } from '../lib/api'; // Importando a camada de serviço
+import { sendGenericEmail } from '../lib/api-email';
 
 interface EmailGeneratorModalProps {
   project: ClientProject;
@@ -116,12 +117,11 @@ export const EmailGeneratorModal: React.FC<EmailGeneratorModalProps> = ({ projec
             metadata: { formalized_at: new Date().toISOString() }
         });
 
-        // --- 2. CHAMADA API: ENVIAR E-MAIL VIA SMTP ---
-        await api.email.send({
+        // --- 2. CHAMADA API: ENVIAR E-MAIL VIA BACKEND NODE.JS ---
+        await sendGenericEmail({
             to: project.email,
             subject: emailSubject,
-            html: emailContent,
-            text: `Olá ${project.clientName}. Seu projeto começou! Acesse ${portalLink} com a senha ${generatedPassword}`
+            html: emailContent
         });
 
         // --- 3. ATUALIZAÇÃO DO ESTADO LOCAL (Context) ---
