@@ -59,7 +59,9 @@ export const Contact: React.FC = () => {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          message: `Tipo de Projeto: ${formData.projectType}\nOrçamento: ${formData.budget}\n\n${formData.message}`,
+          projectType: formData.projectType,
+          budget: formData.budget,
+          message: formData.message,
         }),
       });
 
