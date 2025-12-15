@@ -23,13 +23,29 @@ serve(async (req) => {
 
   try {
     // Parse request body
-    const body = await req.json() as EmailRequest;
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error("❌ Erro ao fazer parse do JSON:", e);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid JSON in request body",
+          details: e instanceof Error ? e.message : String(e),
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Validate required fields
-    if (!body.to || !body.subject || !body.html) {
+    if (!body?.to || !body?.subject || !body?.html) {
       return new Response(
         JSON.stringify({
           error: "Missing required fields: to, subject, html",
+          received: Object.keys(body || {}),
         }),
         {
           status: 400,
