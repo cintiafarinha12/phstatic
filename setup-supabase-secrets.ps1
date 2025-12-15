@@ -111,22 +111,17 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # ============================================
-# OPÇÃO 3: DEPLOY DA FUNÇÃO
+# OPÇÃO 3: DEPLOY DA FUNÇÃO (Via Dashboard)
 # ============================================
 
-Write-Host "`n🚀 Fazendo deploy da Edge Function..." -ForegroundColor $Yellow
-
-$deployCommand = @("functions", "deploy", $functionName, "--project-ref", $projectRef)
-
-Write-Host "▶️  Executando: supabase $($deployCommand -join ' ')" -ForegroundColor $Cyan
-
-$deployResult = & supabase $deployCommand 2>&1
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "✅ Edge Function deployed com sucesso!" -ForegroundColor $Green
-} else {
-    Write-Host "⚠️  Resultado: $deployResult" -ForegroundColor $Yellow
-}
+Write-Host "`n🚀 Deploy da Edge Function" -ForegroundColor $Yellow
+Write-Host "   ℹ️  Docker é necessário para deploy local" -ForegroundColor $Yellow
+Write-Host "   ✅ Secrets já foram configurados!" -ForegroundColor $Green
+Write-Host "`n   Agora você PRECISA fazer deploy manual no Supabase Dashboard:" -ForegroundColor $Cyan
+Write-Host "   1. Acesse: https://app.supabase.com" -ForegroundColor $Cyan
+Write-Host "   2. Vá para Functions → send-email" -ForegroundColor $Cyan
+Write-Host "   3. Clique em 'Deploy' ou 'Publish'" -ForegroundColor $Cyan
+Write-Host "   4. Aguarde confirmação: ✅ Active" -ForegroundColor $Cyan
 
 # ============================================
 # VERIFICAÇÃO FINAL
