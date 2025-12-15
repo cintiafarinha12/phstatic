@@ -2,7 +2,7 @@ services:
   - type: static
     name: phstatic
     plan: free
-    buildCommand: npm ci --legacy-peer-deps && npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
       - key: VITE_ADMIN_PASSWORD_HASH
