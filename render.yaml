@@ -4,7 +4,7 @@ services:
     plan: free
     runtime: node
     buildCommand: npm install --legacy-peer-deps && npm run build
-    startCommand: tsx server/simple.ts
+    startCommand: node -r tsx/esm server/simple.ts
     envVars:
       - key: VITE_API_URL
         value: https://phstatic1.onrender.com
