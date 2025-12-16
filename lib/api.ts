@@ -242,14 +242,8 @@ export const api = {
         }
     },
 
-    email: {
-        send: async (payload: any) => {
-            // Chama Edge Function de e-mail (se configurada) ou apenas loga
-            const { error } = await supabase.functions.invoke('send-email', { body: payload });
-            if (error) console.log("Erro ao enviar email (SMTP não configurado?), logando:", payload);
-            return { success: true, message: "E-mail enviado." };
-        }
-    },
+    // NOTE: Email sending is now handled via lib/api-email.ts which calls the Node.js backend
+    // Routes: /api/send-contact-email, /api/send-update-email, /api/send-contract-email, /api/send-email
 
     contact: {
         submit: async (data: ContactFormData) => { 
