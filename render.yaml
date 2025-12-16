@@ -1,10 +1,13 @@
 services:
-  - type: static
+  - type: web
     name: phstatic
     plan: free
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    runtime: node
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: npm start
     envVars:
+      - key: VITE_API_URL
+        value: https://phstatic1.onrender.com
       - key: VITE_ADMIN_PASSWORD_HASH
         sync: false
       - key: VITE_GOOGLE_ANALYTICS_ID
@@ -15,7 +18,9 @@ services:
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
-      - key: VITE_FORMSPREE_ID
-        sync: false
       - key: VITE_WHATSAPP_NUMBER
+        sync: false
+      - key: VITE_SMTP_USER
+        sync: false
+      - key: VITE_SMTP_PASSWORD
         sync: false
