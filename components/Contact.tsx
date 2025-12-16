@@ -5,7 +5,6 @@ import { Button } from './Button';
 import { useContent } from '../contexts/ContentContext';
 import { ContactFormData } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { sendContactEmail } from '../lib/api-email';
 
 export const Contact: React.FC = () => {
   const { content } = useContent();
@@ -49,14 +48,24 @@ export const Contact: React.FC = () => {
     }
 
     try {
-      // Chamar o servidor backend via helper
-      await sendContactEmail({
-        name: formData.name,
-        email: formData.email,
-        projectType: formData.projectType,
-        budget: formData.budget,
-        message: formData.message,
+      // Chamar o servidor backend
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          projectType: formData.projectType,
+          budget: formData.budget,
+          message: formData.message,
+        }),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao enviar formulário');
+      }
 
       if (isMounted.current) {
         setIsSuccess(true);

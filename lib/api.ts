@@ -1,16 +1,13 @@
-
 import { supabase } from './supabaseClient';
-import { ClientProject, ContactFormData, PaymentOrder, ProjectFile } from '../types';
-import { generatePixCode } from './pix';
+import { ClientProject, ProjectFile } from '../types';
 
 /**
- * API REAL - CONECTADA AO SUPABASE
+ * API - SUPABASE APENAS PARA AUTENTICAÇÃO E PROJETOS
  */
 export const api = {
     
     auth: {
         login: async (email: string, password: string) => {
-            // LOGIN 100% REAL
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password
@@ -18,7 +15,6 @@ export const api = {
 
             if (error) throw new Error("E-mail ou senha incorretos.");
 
-            // Buscar role do perfil real
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('*')
@@ -35,7 +31,6 @@ export const api = {
 
         register: async (data: any) => { 
             try {
-                // Validar dados de entrada
                 if (!data.email || !data.password || data.password.length < 8) {
                     throw new Error('Email e senha (mínimo 8 caracteres) são obrigatórios');
                 }
@@ -87,194 +82,106 @@ export const api = {
 
     project: {
         createAccess: async (projectId: string, accessData: any) => {
-            // CRIAÇÃO DE ACESSO REAL VIA EDGE FUNCTION
-            // Chamamos o backend para criar o usuário 'auth.users' sem deslogar o admin
-            
             console.log("Criando usuário real no backend...");
 
             const { data: funcData, error: funcError } = await supabase.functions.invoke('create-user', {
                 body: {
                     email: accessData.email,
                     password: accessData.tempPassword,
-                    name: accessData.clientName // Passamos o nome para criar o perfil
+                    name: accessData.clientName
                 }
             });
 
             if (funcError) {
-                console.error("Erro na Edge Function:", funcError);
-                
-                // Tratamento de erro amigável para falta de deploy
-                if (funcError.message && (funcError.message.includes('Function not found') || funcError.message.includes('404'))) {
-                    throw new Error("A função de segurança 'create-user' não foi encontrada no Supabase. Execute 'supabase functions deploy create-user' no terminal.");
-                }
-                
-                throw new Error(`Erro ao criar usuário: ${funcError.message}`);
+                console.error("Erro ao criar usuário:", funcError);
+                throw funcError;
             }
 
-            if (funcData.error) {
-                // Se usuário já existe, não é um erro fatal, apenas transferimos o projeto
-                if (!funcData.error.includes("already registered")) {
-                    throw new Error(funcData.error);
-                }
-                console.log("Usuário já existe, vinculando projeto...");
-            }
-
-            // O ID do novo usuário (ou do existente, se tivéssemos lógica de busca, 
-            // mas aqui assumimos que se criou, funcData.user.user.id é o novo ID)
-            
-            // Caso o usuário já exista, precisamos buscar o ID dele pela tabela profiles (já que não temos acesso direto ao auth.users aqui)
-            let targetUserId = funcData?.user?.user?.id;
-
-            if (!targetUserId) {
-                const { data: existingProfile } = await supabase.from('profiles').select('id').eq('email', accessData.email).single();
-                if (existingProfile) targetUserId = existingProfile.id;
-            }
-
-            if (!targetUserId) throw new Error("Não foi possível obter o ID do usuário para vincular o projeto.");
-
-            // TRANSFERIR O PROJETO DO ADMIN PARA O NOVO USUÁRIO REAL
-            const { error: updateError } = await supabase
-                .from('projects')
-                .update({
-                    user_id: targetUserId, // O projeto agora pertence ao cliente
-                    metadata: {
-                        ...accessData.metadata, // Mantém outros metadados
-                        formalized_at: new Date().toISOString()
-                    }
-                })
-                .eq('id', projectId);
-
-            if (updateError) throw updateError;
-
-            return { success: true, message: "Usuário real criado e projeto vinculado." };
+            return { success: true, userId: funcData?.user_id };
         },
 
-        updateStatus: async (projectId: string, status: string) => {
-            const { error } = await supabase
-                .from('projects')
-                .update({ status, updated_at: new Date() })
-                .eq('id', projectId);
-            
-            if (error) throw error;
-            return { success: true };
-        },
-        
         getAll: async () => {
             const { data, error } = await supabase
                 .from('projects')
                 .select(`
-                    *,
+                    id, user_id, client_name, email, project_name, status, progress, due_date, next_milestone,
+                    total_value, paid_value, files, notifications, contract, payment_order, last_update,
                     profiles:user_id (full_name, email)
                 `)
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                if (error.code === '42P01') return [];
-                return []; 
-            }
+            if (error) throw error;
 
             return data.map((p: any) => ({
                 id: p.id,
-                // Agora pegamos sempre do profile real, pois o projeto foi transferido
-                clientName: p.profiles?.full_name || p.metadata?.client_name || 'Cliente',
-                email: p.profiles?.email || p.metadata?.client_email || '',
-                projectName: p.name,
+                userId: p.user_id,
+                clientName: p.client_name || p.profiles?.full_name || 'Cliente',
+                email: p.email || p.profiles?.email || '',
+                projectName: p.project_name,
                 status: p.status,
-                progress: p.progress,
-                nextMilestone: p.next_milestone,
+                progress: p.progress || 0,
                 dueDate: p.due_date,
-                lastUpdate: new Date(p.updated_at).toLocaleDateString('pt-BR'),
-                previewUrl: p.preview_url,
-                financial: p.financial_data || { total: 0, paid: 0, status: 'pending' },
-                tasks: [], 
-                files: [], 
-                links: p.links || {},
-                activity: [], 
-                notifications: [], 
-                contract: p.contract_data,
-                paymentOrder: null
+                nextMilestone: p.next_milestone,
+                financial: {
+                    total: p.total_value || 0,
+                    paid: p.paid_value || 0,
+                    status: p.paid_value >= p.total_value ? 'paid' : p.paid_value > 0 ? 'partial' : 'pending'
+                },
+                files: p.files || [],
+                notifications: p.notifications || [],
+                contract: p.contract,
+                paymentOrder: p.payment_order,
+                lastUpdate: p.last_update || 'Nunca'
             }));
         },
-        
-        create: async (projectData: any) => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Usuário não autenticado");
 
-            // Cria o projeto inicialmente vinculado ao Admin
-            // Será transferido ao Cliente na "Formalização"
-            const { data, error } = await supabase
-                .from('projects')
-                .insert({
-                    user_id: user.id, 
-                    name: projectData.projectName,
-                    financial_data: { total: projectData.totalValue, paid: 0, status: 'pending' },
-                    status: 'new',
-                    progress: 0,
-                    metadata: {
-                        client_name: projectData.clientName,
-                        client_email: projectData.email
-                    }
-                })
-                .select()
-                .single();
+        create: async (projectData: { clientName: string; email: string; projectName: string; totalValue: number }) => {
+            const { data: authData } = await supabase.auth.getSession();
+            
+            if (!authData.session) throw new Error("Não autenticado");
+
+            const { data, error } = await supabase.from('projects').insert({
+                user_id: authData.session.user.id,
+                client_name: projectData.clientName,
+                email: projectData.email,
+                project_name: projectData.projectName,
+                status: 'new',
+                total_value: projectData.totalValue,
+                metadata: { client_email: projectData.email }
+            }).select().single();
 
             if (error) throw error;
-            return { 
-                ...data, 
-                clientName: projectData.clientName, 
-                email: projectData.email,
-                financial: data.financial_data
+
+            return {
+                id: data.id,
+                clientName: data.client_name,
+                email: data.email,
+                projectName: data.project_name,
+                financial: { total: data.total_value, paid: 0, status: 'pending' }
             };
         },
-        
-        update: async (id: string, updates: any) => {
+
+        update: async (id: string, data: Partial<ClientProject>) => {
             const dbUpdates: any = {};
-            if (updates.status) dbUpdates.status = updates.status;
-            if (updates.progress !== undefined) dbUpdates.progress = updates.progress;
-            if (updates.financial) dbUpdates.financial_data = updates.financial;
-            if (updates.contract) dbUpdates.contract_data = updates.contract;
-            if (updates.dueDate) dbUpdates.due_date = updates.dueDate;
-            if (updates.nextMilestone) dbUpdates.next_milestone = updates.nextMilestone;
-            if (updates.previewUrl !== undefined) dbUpdates.preview_url = updates.previewUrl;
+            if (data.projectName) dbUpdates.project_name = data.projectName;
+            if (data.clientName) dbUpdates.client_name = data.clientName;
+            if (data.email) dbUpdates.email = data.email;
+            if (data.status) dbUpdates.status = data.status;
+            if (data.progress !== undefined) dbUpdates.progress = data.progress;
+            if (data.dueDate) dbUpdates.due_date = data.dueDate;
+            if (data.nextMilestone) dbUpdates.next_milestone = data.nextMilestone;
+            if (data.financial) {
+                dbUpdates.total_value = data.financial.total;
+                dbUpdates.paid_value = data.financial.paid;
+            }
+            if (data.files) dbUpdates.files = data.files;
+            if (data.notifications) dbUpdates.notifications = data.notifications;
+            if (data.contract) dbUpdates.contract = data.contract;
+            if (data.paymentOrder) dbUpdates.payment_order = data.paymentOrder;
+            if (data.lastUpdate) dbUpdates.last_update = data.lastUpdate;
 
             const { error } = await supabase.from('projects').update(dbUpdates).eq('id', id);
             if (error) throw error;
-        }
-    },
-
-    // NOTE: Email sending is now handled via lib/api-email.ts which calls the Node.js backend
-    // Routes: /api/send-contact-email, /api/send-update-email, /api/send-contract-email, /api/send-email
-
-    contact: {
-        submit: async (data: ContactFormData) => { 
-            const { error } = await supabase.from('leads').insert({
-                name: data.name,
-                email: data.email,
-                project_type: data.projectType,
-                budget: data.budget,
-                message: data.message
-            });
-            if (error) throw error;
-            return { success: true }; 
-        }
-    },
-
-    payment: {
-        create: async (amount: number, description: string, payerEmail: string): Promise<PaymentOrder> => {
-            const txId = `PH${Math.floor(Math.random() * 10000)}`.toUpperCase();
-            const fallbackKey = "05379507107"; 
-            const pixCode = generatePixCode(fallbackKey, "PH Development", "BRASILIA", amount, txId);
-            return {
-                id: txId,
-                description,
-                amount,
-                status: 'pending',
-                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-                pixCode: pixCode
-            };
-        },
-        checkStatus: async (paymentId: string): Promise<{status: string}> => {
-            return { status: 'pending' };
         }
     }
 };

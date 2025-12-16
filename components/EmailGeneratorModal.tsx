@@ -7,7 +7,6 @@ import { Button } from './Button';
 import { useProject } from '../contexts/ProjectContext';
 import { SITE_CONFIG } from '../config';
 import { api } from '../lib/api'; // Importando a camada de serviço
-import { sendGenericEmail } from '../lib/api-email';
 
 interface EmailGeneratorModalProps {
   project: ClientProject;
@@ -107,25 +106,17 @@ export const EmailGeneratorModal: React.FC<EmailGeneratorModalProps> = ({ projec
         // --- PREPARAÇÃO DOS DADOS ---
         const emailContent = getFormattedEmailHtml(project, portalLink, generatedPassword, signalValue);
         
-        // --- 1. CHAMADA API: CRIAR CREDENCIAIS NO BANCO DE DADOS (AGORA VIA EDGE FUNCTION) ---
-        // Isso criará o usuário real no auth.users
+        // --- 1. CHAMADA API: CRIAR CREDENCIAIS NO BANCO DE DADOS (VIA EDGE FUNCTION) ---
         await api.project.createAccess(project.id, {
             email: project.email,
             tempPassword: generatedPassword,
             portalUrl: portalLink,
-            clientName: project.clientName, // CRÍTICO: Envia o nome para criar o perfil corretamente
+            clientName: project.clientName,
             metadata: { formalized_at: new Date().toISOString() }
         });
 
-        // --- 2. CHAMADA API: ENVIAR E-MAIL VIA BACKEND NODE.JS ---
-        await sendGenericEmail({
-            to: project.email,
-            subject: emailSubject,
-            html: emailContent
-        });
-
-        // --- 3. ATUALIZAÇÃO DO ESTADO LOCAL (Context) ---
-        // Atualiza a UI imediatamente enquanto o backend processa
+        // --- 2. ATUALIZAÇÃO DO ESTADO LOCAL (Context) ---
+        // Nota: Email pode ser enviado via rota /api/contact do backend
         updateProject(project.id, {
             status: 'development',
             progress: 5, // Início
